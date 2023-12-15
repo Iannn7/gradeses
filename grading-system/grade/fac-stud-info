@@ -1,0 +1,56 @@
+<?php
+$mysqli = mysqli_connect("localhost", "root", "", "grading_system");
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    // Check if form fields are set and not empty
+    if (isset($_POST["FAC_SUB_ID"]) && isset($_POST["STUDENT_ID"]) &&
+        !empty($_POST["FAC_SUB_ID"]) && !empty($_POST["STUDENT_ID"])) {
+
+        // Validate input (e.g., ensure they are integers)
+        $facSubID = intval($_POST["FAC_SUB_ID"]);
+        $studentID = intval($_POST["STUDENT_ID"]);
+
+        // Prepare and execute the SQL query
+        $sql = "INSERT INTO faculty_students (FAC_SUB_ID, STUDENT_ID) VALUES (?, ?)";
+        $stmt = $mysqli->prepare($sql);
+
+        if (!$stmt) {
+            die("SQL error: " . $mysqli->error);
+        }
+
+        $stmt->bind_param("ii", $facSubID, $studentID);
+
+        if ($stmt->execute()) {
+            echo '<script type="text/javascript">
+                window.onload = function () { alert("Student Added Successfully"); } 
+                </script>';
+        } else {
+            if ($mysqli->errno === 1062) {
+                die("Student for this faculty already exists.");
+            } else {
+                die($mysqli->error . " " . $mysqli->errno);
+            }
+        }
+    } else {
+        // Handle case when POST data is missing or empty
+        echo "Please fill in all the fields.";
+    }
+}
+
+// Fetch FAC_SUB_ID from faculty_subjects using sub_id from URL
+if (isset($_GET['sub_id'])) {
+    $subID = intval($_GET['sub_id']);
+    $fetchQuery = "SELECT ID FROM faculty_subjects WHERE SUBJECT_ID = ?";
+    $stmt = $mysqli->prepare($fetchQuery);
+    $stmt->bind_param("i", $subID);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+
+    if ($row) {
+        $facSubID = $row['ID'];
+    }
+    $stmt->close();
+}
+$mysqli->close();
+?>
